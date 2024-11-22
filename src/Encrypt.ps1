@@ -18,7 +18,7 @@
 # File paths for settings and logs
 [string] $settingsFilePath = "$Tempfolder\Settings.dll"
 [string] $ErrorLogFilePath = "$Tempfolder\ErrorLog.log"
-[string] $logFilePath = "$Tempfolder\FileSync.log"
+[string] $logFilePath = "$Tempfolder\CryptKeeper.log"
 [string] $logMessage
 [int] $corrupted
 
@@ -68,8 +68,6 @@ function encrypt {
     Write-Host $password -ForegroundColor Green
 
     # Somehow generate an IV (Initialization Vector) -> convert to secure string -> key from that -> AES encryption object must be created....
-
-  
 
     Write-host "Encryption complete."
 
@@ -132,17 +130,21 @@ function menu{
                 
             }
             2{
-                printLog
+                log -logtype 1 -logMessage "Log: Printed log"
+                printlog
             }
             3{
+                log -logtype 1 -logMessage "Log: Printed source code"
                 printSourceCode
             }
             99 {
+                log -logtype 1 -logMessage "Log: Ended CryptKeeper"
                 Write-Host "Bye!"
                 Start-Sleep -Seconds 1
                 exit
             }
             default {
+                log -logtype 1 -logMessage "Log: Invalid input in Menu"
                 Write-host "Invalid input. Try again"
                 Write-host "To exit, enter 99" -ForegroundColor Red
                 Start-Sleep -Milliseconds 1500
@@ -189,8 +191,48 @@ function log {
     }
 }
 
+function printlog {
+    # This function prints the log file into the console.
+    Clear-Host
+    $logContent = Get-Content -Path $logFilePath
+    foreach ($line in $logContent) {
+        if ($line -match "started") {
+            $originalColor = $Host.UI.RawUI.ForegroundColor
+            $Host.UI.RawUI.ForegroundColor = "Green"
+            $line | Out-Host
+            $Host.UI.RawUI.ForegroundColor = $originalColor
+        } elseif ($line -match "Error") {
+            
+        } else {
+            $line | Out-Host
+        }
+    }
+    Read-Host "`nPress Enter to return to menu..."
+}
 
-logo
-menu
+function setup {
+    # This function sets up the environment for the CryptKeeper.
+    if (-not (Test-Path $Tempfolder)) {
+        New-Item -Path $Tempfolder -ItemType Directory -Force
+    }
+    if (-not (Test-Path $settingsFilePath)) {
+        New-Item -Path $settingsFilePath -ItemType File -Force
+    }
+    if (-not (Test-Path $logFilePath)) {
+        New-Item -Path $logFilePath -ItemType File -Force
+    }
+    if (-not (Test-Path $ErrorLogFilePath)) {
+        New-Item -Path $ErrorLogFilePath -ItemType File -Force
+    }
+}
+
+function Main{
+    log -logtype 1 -logMessage "Start: CryptKeeper started"
+    logo
+    setup
+    menu
+}
+
+Main
 
 

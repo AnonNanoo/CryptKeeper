@@ -202,7 +202,10 @@ function printlog {
             $line | Out-Host
             $Host.UI.RawUI.ForegroundColor = $originalColor
         } elseif ($line -match "Error") {
-            
+            $originalColor = $Host.UI.RawUI.ForegroundColor
+            $Host.UI.RawUI.ForegroundColor = "Red"
+            $line | Out-Host
+            $Host.UI.RawUI.ForegroundColor = $originalColor
         } else {
             $line | Out-Host
         }

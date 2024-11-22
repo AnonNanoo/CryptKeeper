@@ -109,6 +109,7 @@ function logo {
         Write-Host "." -NoNewline
     }until ($i -eq 3)
     Write-Host "`n"
+    Read-Host
 }
 
 
@@ -122,11 +123,14 @@ function menu{
         Write-Host "| (2) Open Log                            |"
         Write-Host "| (3) Sourcecode                          |"
         Write-Host "|                                         |"
+        Write-Host "| (95) Deletion                           |"
         Write-Host "| (99) Exit                               |"
         Write-Host "|_________________________________________|`n"
         $menuinput = read-host "Please select an option"
         switch ( $menuinput ) {
             1 {
+                log -logtype 1 -logMessage "Log: Started encryption dialogue"
+                encrypt
                 
             }
             2{
@@ -136,6 +140,23 @@ function menu{
             3{
                 log -logtype 1 -logMessage "Log: Printed source code"
                 printSourceCode
+            }
+            95{
+                log -logtype 1 -logMessage "Log: Initialized encryption dialogue"
+                Write-Host "Are you sure you want to delete all the files in the Temp folder? (Y/N)" -ForegroundColor Red
+                $syncoptions = Read-Host
+                if ($syncoptions -eq "Y" -or $syncoptions -eq "y") {
+                    Remove-Item -Path $Tempfolder -Recurse -Force
+                    Write-Host "`nAll files in the Temp folder have been deleted." -ForegroundColor Green
+                    Start-Sleep -Seconds 1
+                    Write-Host "`nGoodbye!" -ForegroundColor Green
+                    exit
+                }
+                else {
+                    log -logtype 1 -logMessage "Log: Deletion cancelled"
+                    Write-Host "`nDeletion cancelled." -ForegroundColor Green
+                    Start-Sleep -Seconds 1
+                }
             }
             99 {
                 log -logtype 1 -logMessage "Log: Ended CryptKeeper"
@@ -196,7 +217,7 @@ function printlog {
     Clear-Host
     $logContent = Get-Content -Path $logFilePath
     foreach ($line in $logContent) {
-        if ($line -match "started") {
+        if ($line -match "Start") {
             $originalColor = $Host.UI.RawUI.ForegroundColor
             $Host.UI.RawUI.ForegroundColor = "Green"
             $line | Out-Host
@@ -227,6 +248,7 @@ function setup {
     if (-not (Test-Path $ErrorLogFilePath)) {
         New-Item -Path $ErrorLogFilePath -ItemType File -Force
     }
+    read-host
 }
 
 function Main{

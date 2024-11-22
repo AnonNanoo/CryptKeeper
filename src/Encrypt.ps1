@@ -217,12 +217,12 @@ function printlog {
     Clear-Host
     $logContent = Get-Content -Path $logFilePath
     foreach ($line in $logContent) {
-        if ($line -match "Start") {
+        if ($line -match "Start:") {
             $originalColor = $Host.UI.RawUI.ForegroundColor
             $Host.UI.RawUI.ForegroundColor = "Green"
             $line | Out-Host
             $Host.UI.RawUI.ForegroundColor = $originalColor
-        } elseif ($line -match "Error") {
+        } elseif ($line -match "Error:") {
             $originalColor = $Host.UI.RawUI.ForegroundColor
             $Host.UI.RawUI.ForegroundColor = "Red"
             $line | Out-Host

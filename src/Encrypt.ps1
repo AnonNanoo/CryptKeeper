@@ -147,6 +147,22 @@ function menu{
                 $syncoptions = Read-Host
                 if ($syncoptions -eq "Y" -or $syncoptions -eq "y") {
                     Remove-Item -Path $Tempfolder -Recurse -Force
+
+                    Write-Host "`nDeletion in progress" -ForegroundColor Red -NoNewline
+                    [int] $i = 0
+                    [int] $j = 0
+                    do {
+                        $i++
+                        Start-Sleep -Seconds 0.2
+                        Write-Host "." -NoNewline -ForegroundColor Red
+                        if ($i -eq 3) {
+                            Start-Sleep -Seconds 0.2
+                            Write-Host "`b`b`b   `b`b`b" -NoNewline  # Remove the 3 dots
+                            $i = 0
+                            $j++
+                        }
+                    } until ($j -eq 3)
+
                     Write-Host "`nAll files in the Temp folder have been deleted." -ForegroundColor Green
                     Start-Sleep -Seconds 1
                     Write-Host "`nGoodbye!" -ForegroundColor Green

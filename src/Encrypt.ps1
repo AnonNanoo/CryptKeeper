@@ -61,16 +61,51 @@ function encrypt {
     }
 
     # Read the input file
-   
+
 
     Write-Host $inputPath -ForegroundColor Green
     Write-Host $outputPath -ForegroundColor Green
     Write-Host $password -ForegroundColor Green
 
-    # Somehow generate an IV (Initialization Vector) -> convert to secure string -> key from that -> AES encryption object must be created....
+    # Somehow generate an IV (Initialization Vector) for AES encryption
+    $iv = New-Object Byte[] 16
+    [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($iv)
 
-    Write-host "Encryption complete."
+     # Read the input file
+     $inputData = [System.IO.File]::ReadAllBytes($inputPath)
 
+     # Display paths and password (remove in production for security reasons)
+     Write-Host $inputPath -ForegroundColor Green
+     Write-Host $outputPath -ForegroundColor Green
+     Write-Host $password -ForegroundColor Green
+
+     # Generate an IV (Initialization Vector) for AES encryption
+     $iv = New-Object Byte[] 16
+     [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($iv)
+
+     # Hash the password using SHA256 to create a 256-bit key
+     $sha256 = [System.Security.Cryptography.SHA256]::Create()
+     $passwordBytes = [System.Text.Encoding]::UTF8.GetBytes($password)
+     $hashedPassword = $sha256.ComputeHash($passwordBytes)
+
+     # Create AES encryption object
+     $aes = [System.Security.Cryptography.Aes]::Create()
+     $aes.Key = $hashedPassword
+     $aes.IV = $iv
+     $aes.Mode = [System.Security.Cryptography.CipherMode]::CBC
+     $aes.Padding = [System.Security.Cryptography.PaddingMode]::PKCS7
+
+     # Encrypt the input data
+     $encryptor = $aes.CreateEncryptor()
+
+     # Combine the IV and encrypted data
+     $finalData = $iv + $encryptedData
+
+     # Write the encrypted data to the output file
+     [System.IO.File]::WriteAllBytes($outputPath, $finalData)
+
+     Write-Host "Encryption complete."
+     Read-host
 }
 
 
@@ -129,7 +164,7 @@ function menu{
         $menuinput = read-host "Please select an option"
         switch ( $menuinput ) {
             1 {
-                log -logtype 1 -logMessage "Log: Started encryption dialogue"
+                log -logtype 1 -logMessage "Log: Initialized encryption dialogue"
                 encrypt
                 
             }
@@ -142,7 +177,7 @@ function menu{
                 printSourceCode
             }
             95{
-                log -logtype 1 -logMessage "Log: Initialized encryption dialogue"
+                log -logtype 1 -logMessage "Log: Initialized deletion dialogue"
                 Write-Host "Are you sure you want to delete all the files in the Temp folder? (Y/N)" -ForegroundColor Red
                 $syncoptions = Read-Host
                 if ($syncoptions -eq "Y" -or $syncoptions -eq "y") {
@@ -163,7 +198,7 @@ function menu{
                         }
                     } until ($j -eq 3)
 
-                    Write-Host "`nAll files in the Temp folder have been deleted." -ForegroundColor Green
+                    Write-Host "`n`nAll files in the Temp folder have been deleted." -ForegroundColor Green
                     Start-Sleep -Seconds 1
                     Write-Host "`nGoodbye!" -ForegroundColor Green
                     exit
@@ -181,7 +216,7 @@ function menu{
                 exit
             }
             default {
-                log -logtype 1 -logMessage "Log: Invalid input in Menu"
+                log -logtype 1 -logMessage "Error: Invalid input in Menu"
                 Write-host "Invalid input. Try again"
                 Write-host "To exit, enter 99" -ForegroundColor Red
                 Start-Sleep -Milliseconds 1500

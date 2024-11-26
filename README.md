@@ -1,5 +1,5 @@
 # CryptKeeper
-File encryption script for powershell 
+File encryption script for powershell and will later be available for bash!
 # IN PROGRESS!! :construction:
 
 ## Description

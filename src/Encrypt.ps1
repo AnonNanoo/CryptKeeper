@@ -25,40 +25,49 @@
 function encrypt {
     Clear-Host
 
-     # Prompt user for inputs
-     Write-Host "Enter the path to the input file (file to be encrypted)" -ForegroundColor Yellow
-     $inputPath = Read-Host
-     Write-Host "`nEnter the path to the output file (where the encrypted file will be saved)" -ForegroundColor Yellow
-     $outputPath = Read-Host
- 
-     Write-Host "`nEnter the password for encryption" -ForegroundColor Cyan
-     $password = Read-Host
- 
+    # Prompt user for inputs
+    Write-Host "Enter the path to the input file (file to be encrypted)" -ForegroundColor Yellow
+    $inputPath = Read-Host
+    Write-Host "`nEnter the path to the output file (where the encrypted file will be saved)" -ForegroundColor Yellow
+    $outputPath = Read-Host
+
+    Write-Host "`nEnter the password for encryption" -ForegroundColor Cyan
+    $password = Read-Host
+
     $inputExists = Test-Path $inputPath
-    $outputExists = Test-Path $outputPath
     $passwordExists = $password.Length -ge 3
 
-    if (-not $inputExists -or -not $outputExists -or -not $passwordExists) {
+    if (-not $inputExists -or -not $passwordExists) {
         if (-not $inputExists) {
             Write-Host "`nInput file does not exist.`n" -ForegroundColor Red
         }
-        if (-not $outputExists) {
-            Write-Host "`nOutput file does not exist.`n" -ForegroundColor Red
-        }
         if (-not $passwordExists) {
             Write-Host "`nPassword must be at least 3 characters long.`n" -ForegroundColor Red
-            
         }
 
-        Write-Host "Press any key to return..." -ForegroundColor Yellow
-        read-host
+        Write-Host "Press any key to return to the menu..." -ForegroundColor Yellow
+        Read-Host
 
         $inputExists = ""
-        $outputExists = ""
         $passwordExists = ""
-        encrypt
+
+        menu
         return
     }
+
+    # Ensure the output directory exists
+    $outputDir = Split-Path $outputPath -Parent
+    if (-not (Test-Path $outputDir)) {
+        New-Item -ItemType Directory -Path $outputDir -Force
+    }
+
+    # Create the output file if it doesn't exist
+    if (-not (Test-Path $outputPath)) {
+        New-Item -ItemType File -Path $outputPath -Force
+    }
+
+    # Proceed with encryption logic here
+    Write-Host "`nProceeding with encryption..." -ForegroundColor Green
 
     # Read the input file
 

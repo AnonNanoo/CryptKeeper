@@ -31,8 +31,16 @@ function encrypt {
     Write-Host "`nEnter the path to the output file (where the encrypted file will be saved)" -ForegroundColor Yellow
     $outputPath = Read-Host
 
-    Write-Host "`nEnter the password for encryption" -ForegroundColor Cyan
-    $password = Read-Host
+    $password = Read-Host -Prompt "`nEnter the password" -AsSecureString
+
+    # Convert the secure string to an unsecure string for encryption purposes
+    $unsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto
+    (
+        [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($password)
+    )
+
+   
+    
 
     $inputExists = Test-Path $inputPath
     $passwordExists = $password.Length -ge 3
@@ -61,60 +69,45 @@ function encrypt {
         New-Item -ItemType Directory -Path $outputDir -Force
     }
 
-    # Create the output file if it doesn't exist
-    if (-not (Test-Path $outputPath)) {
-        New-Item -ItemType File -Path $outputPath -Force
-    }
-
     # Proceed with encryption logic here
-    Write-Host "`nProceeding with encryption..." -ForegroundColor Green
+    Write-Host "`nProceeding with encryption...\n" -ForegroundColor Green
 
     # Read the input file
+    $inputData = [System.IO.File]::ReadAllBytes($inputPath)
 
-
+    # Display paths and password (remove in production for security reasons)
     Write-Host $inputPath -ForegroundColor Green
     Write-Host $outputPath -ForegroundColor Green
     Write-Host $password -ForegroundColor Green
 
-    # Somehow generate an IV (Initialization Vector) for AES encryption
+    # Generate an IV (Initialization Vector) for AES encryption
     $iv = New-Object Byte[] 16
     [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($iv)
 
-     # Read the input file
-     $inputData = [System.IO.File]::ReadAllBytes($inputPath)
+    # Hash the password using SHA256 to create a 256-bit key
+    $sha256 = [System.Security.Cryptography.SHA256]::Create()
+    $passwordBytes = [System.Text.Encoding]::UTF8.GetBytes($password)
+    $hashedPassword = $sha256.ComputeHash($passwordBytes)
 
-     # Display paths and password (remove in production for security reasons)
-     Write-Host $inputPath -ForegroundColor Green
-     Write-Host $outputPath -ForegroundColor Green
-     Write-Host $password -ForegroundColor Green
+    # Create AES encryption object
+    $aes = [System.Security.Cryptography.Aes]::Create()
+    $aes.Key = $hashedPassword
+    $aes.IV = $iv
+    $aes.Mode = [System.Security.Cryptography.CipherMode]::CBC
+    $aes.Padding = [System.Security.Cryptography.PaddingMode]::PKCS7
 
-     # Generate an IV (Initialization Vector) for AES encryption
-     $iv = New-Object Byte[] 16
-     [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($iv)
+    # Encrypt the input data
+    $encryptor = $aes.CreateEncryptor()
+    $encryptedData = $encryptor.TransformFinalBlock($inputData, 0, $inputData.Length)
 
-     # Hash the password using SHA256 to create a 256-bit key
-     $sha256 = [System.Security.Cryptography.SHA256]::Create()
-     $passwordBytes = [System.Text.Encoding]::UTF8.GetBytes($password)
-     $hashedPassword = $sha256.ComputeHash($passwordBytes)
+    # Combine the IV and encrypted data
+    $finalData = $iv + $encryptedData
 
-     # Create AES encryption object
-     $aes = [System.Security.Cryptography.Aes]::Create()
-     $aes.Key = $hashedPassword
-     $aes.IV = $iv
-     $aes.Mode = [System.Security.Cryptography.CipherMode]::CBC
-     $aes.Padding = [System.Security.Cryptography.PaddingMode]::PKCS7
+    # Write the encrypted data to the output file
+    [System.IO.File]::WriteAllBytes($outputPath, $finalData)
 
-     # Encrypt the input data
-     $encryptor = $aes.CreateEncryptor()
-
-     # Combine the IV and encrypted data
-     $finalData = $iv + $encryptedData
-
-     # Write the encrypted data to the output file
-     [System.IO.File]::WriteAllBytes($outputPath, $finalData)
-
-     Write-Host "Encryption complete."
-     Read-host
+    Write-Host "`nEncryption complete."
+    Read-Host
 }
 
 

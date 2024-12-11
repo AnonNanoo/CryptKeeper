@@ -25,52 +25,89 @@
 function encrypt {
     Clear-Host
 
-     # Prompt user for inputs
-     Write-Host "Enter the path to the input file (file to be encrypted)" -ForegroundColor Yellow
-     $inputPath = Read-Host
-     Write-Host "`nEnter the path to the output file (where the encrypted file will be saved)" -ForegroundColor Yellow
-     $outputPath = Read-Host
- 
-     Write-Host "`nEnter the password for encryption" -ForegroundColor Cyan
-     $password = Read-Host
- 
+    # Prompt user for inputs
+    Write-Host "Enter the path to the input file (file to be encrypted)" -ForegroundColor Yellow
+    $inputPath = Read-Host
+    Write-Host "`nEnter the path to the output file (where the encrypted file will be saved)" -ForegroundColor Yellow
+    $outputPath = Read-Host
+
+    $password = Read-Host -Prompt "`n`nEnter the password" -AsSecureString
+
+    # Convert the secure string to an unsecure string for encryption purposes
+    $unsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto
+    (
+        [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($password)
+    )
+
+   
+    
+
     $inputExists = Test-Path $inputPath
-    $outputExists = Test-Path $outputPath
     $passwordExists = $password.Length -ge 3
 
-    if (-not $inputExists -or -not $outputExists -or -not $passwordExists) {
+    if (-not $inputExists -or -not $passwordExists) {
         if (-not $inputExists) {
             Write-Host "`nInput file does not exist.`n" -ForegroundColor Red
         }
-        if (-not $outputExists) {
-            Write-Host "`nOutput file does not exist.`n" -ForegroundColor Red
-        }
         if (-not $passwordExists) {
             Write-Host "`nPassword must be at least 3 characters long.`n" -ForegroundColor Red
-            
         }
 
-        Write-Host "Press any key to return..." -ForegroundColor Yellow
-        read-host
+        Write-Host "Press any key to return to the menu..." -ForegroundColor Yellow
+        Read-Host
 
         $inputExists = ""
-        $outputExists = ""
         $passwordExists = ""
-        encrypt
+
+        menu
         return
     }
 
-    # Read the input file
-   
+    # Ensure the output directory exists
+    $outputDir = Split-Path $outputPath -Parent
+    if (-not (Test-Path $outputDir)) {
+        New-Item -ItemType Directory -Path $outputDir -Force
+    }
 
+    # Proceed with encryption logic here
+    Write-Host "`nProceeding with encryption...`n" -ForegroundColor Green
+
+    # Read the input file
+    $inputData = [System.IO.File]::ReadAllBytes($inputPath)
+
+    # Display paths and password (remove in production for security reasons)
     Write-Host $inputPath -ForegroundColor Green
     Write-Host $outputPath -ForegroundColor Green
     Write-Host $password -ForegroundColor Green
 
-    # Somehow generate an IV (Initialization Vector) -> convert to secure string -> key from that -> AES encryption object must be created....
+    # Generate an IV (Initialization Vector) for AES encryption
+    $iv = New-Object Byte[] 16
+    [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($iv)
 
-    Write-host "Encryption complete."
+    # Hash the password using SHA256 to create a 256-bit key
+    $sha256 = [System.Security.Cryptography.SHA256]::Create()
+    $passwordBytes = [System.Text.Encoding]::UTF8.GetBytes($password)
+    $hashedPassword = $sha256.ComputeHash($passwordBytes)
 
+    # Create AES encryption object
+    $aes = [System.Security.Cryptography.Aes]::Create()
+    $aes.Key = $hashedPassword
+    $aes.IV = $iv
+    $aes.Mode = [System.Security.Cryptography.CipherMode]::CBC
+    $aes.Padding = [System.Security.Cryptography.PaddingMode]::PKCS7
+
+    # Encrypt the input data
+    $encryptor = $aes.CreateEncryptor()
+    $encryptedData = $encryptor.TransformFinalBlock($inputData, 0, $inputData.Length)
+
+    # Combine the IV and encrypted data
+    $finalData = $iv + $encryptedData
+
+    # Write the encrypted data to the output file
+    [System.IO.File]::WriteAllBytes($outputPath, $finalData)
+
+    Write-Host "`nEncryption complete."
+    Read-Host
 }
 
 
@@ -109,6 +146,7 @@ function logo {
         Write-Host "." -NoNewline
     }until ($i -eq 3)
     Write-Host "`n"
+    Read-Host
 }
 
 
@@ -122,11 +160,14 @@ function menu{
         Write-Host "| (2) Open Log                            |"
         Write-Host "| (3) Sourcecode                          |"
         Write-Host "|                                         |"
+        Write-Host "| (95) Deletion                           |"
         Write-Host "| (99) Exit                               |"
         Write-Host "|_________________________________________|`n"
         $menuinput = read-host "Please select an option"
         switch ( $menuinput ) {
             1 {
+                log -logtype 1 -logMessage "Log: Initialized encryption dialogue"
+                encrypt
                 
             }
             2{
@@ -137,6 +178,39 @@ function menu{
                 log -logtype 1 -logMessage "Log: Printed source code"
                 printSourceCode
             }
+            95{
+                log -logtype 1 -logMessage "Log: Initialized deletion dialogue"
+                Write-Host "Are you sure you want to delete all the files in the Temp folder? (Y/N)" -ForegroundColor Red
+                $syncoptions = Read-Host
+                if ($syncoptions -eq "Y" -or $syncoptions -eq "y") {
+                    Remove-Item -Path $Tempfolder -Recurse -Force
+
+                    Write-Host "`nDeletion in progress" -ForegroundColor Red -NoNewline
+                    [int] $i = 0
+                    [int] $j = 0
+                    do {
+                        $i++
+                        Start-Sleep -Seconds 0.2
+                        Write-Host "." -NoNewline -ForegroundColor Red
+                        if ($i -eq 3) {
+                            Start-Sleep -Seconds 0.2
+                            Write-Host "`b`b`b   `b`b`b" -NoNewline  # Remove the 3 dots
+                            $i = 0
+                            $j++
+                        }
+                    } until ($j -eq 3)
+
+                    Write-Host "`n`nAll files in the Temp folder have been deleted." -ForegroundColor Green
+                    Start-Sleep -Seconds 1
+                    Write-Host "`nGoodbye!" -ForegroundColor Green
+                    exit
+                }
+                else {
+                    log -logtype 1 -logMessage "Log: Deletion cancelled"
+                    Write-Host "`nDeletion cancelled." -ForegroundColor Green
+                    Start-Sleep -Seconds 1
+                }
+            }
             99 {
                 log -logtype 1 -logMessage "Log: Ended CryptKeeper"
                 Write-Host "Bye!"
@@ -144,7 +218,7 @@ function menu{
                 exit
             }
             default {
-                log -logtype 1 -logMessage "Log: Invalid input in Menu"
+                log -logtype 1 -logMessage "Error: Invalid input in Menu"
                 Write-host "Invalid input. Try again"
                 Write-host "To exit, enter 99" -ForegroundColor Red
                 Start-Sleep -Milliseconds 1500
@@ -196,12 +270,12 @@ function printlog {
     Clear-Host
     $logContent = Get-Content -Path $logFilePath
     foreach ($line in $logContent) {
-        if ($line -match "started") {
+        if ($line -match "Start:") {
             $originalColor = $Host.UI.RawUI.ForegroundColor
             $Host.UI.RawUI.ForegroundColor = "Green"
             $line | Out-Host
             $Host.UI.RawUI.ForegroundColor = $originalColor
-        } elseif ($line -match "Error") {
+        } elseif ($line -match "Error:") {
             $originalColor = $Host.UI.RawUI.ForegroundColor
             $Host.UI.RawUI.ForegroundColor = "Red"
             $line | Out-Host
@@ -227,6 +301,7 @@ function setup {
     if (-not (Test-Path $ErrorLogFilePath)) {
         New-Item -Path $ErrorLogFilePath -ItemType File -Force
     }
+    read-host
 }
 
 function Main{

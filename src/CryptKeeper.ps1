@@ -26,9 +26,9 @@ function encrypt {
     Clear-Host
 
     # Prompt user for inputs
-    Write-Host "Enter the path to the input file (file to be encrypted)" -ForegroundColor Yellow
+    Write-Host "Enter the path to the input file (file to be encrypted)`n(E.g. C:/Your/Path/File.txt)" -ForegroundColor Yellow
     $inputPath = Read-Host
-    Write-Host "`nEnter the path to the output file (where the encrypted file will be saved)" -ForegroundColor Yellow
+    Write-Host "`nEnter the path to the output file (where the encrypted file will be saved)`n(E.g. C:/Your/Path/File.txt)" -ForegroundColor Yellow
     $outputPath = Read-Host
 
     $password = Read-Host -Prompt "`n`nEnter the password" -AsSecureString
@@ -309,7 +309,7 @@ function printSourceCode {
     Write-Host "`n"
     read-host "Press any key to return to the menu..." -ForegroundColor Yellow
     
-    menu
+    menux
 }
 
 

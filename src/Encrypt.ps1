@@ -31,7 +31,7 @@ function encrypt {
     Write-Host "`nEnter the path to the output file (where the encrypted file will be saved)" -ForegroundColor Yellow
     $outputPath = Read-Host
 
-    $password = Read-Host -Prompt "`nEnter the password" -AsSecureString
+    $password = Read-Host -Prompt "`n`nEnter the password" -AsSecureString
 
     # Convert the secure string to an unsecure string for encryption purposes
     $unsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto
@@ -70,7 +70,7 @@ function encrypt {
     }
 
     # Proceed with encryption logic here
-    Write-Host "`nProceeding with encryption...\n" -ForegroundColor Green
+    Write-Host "`nProceeding with encryption...`n" -ForegroundColor Green
 
     # Read the input file
     $inputData = [System.IO.File]::ReadAllBytes($inputPath)

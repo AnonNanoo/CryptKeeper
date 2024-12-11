@@ -110,9 +110,73 @@ function encrypt {
     Read-Host
 }
 
-function decrypt{
-    
+function decrypt {
+    Clear-Host
+
+    # Prompt user for inputs
+    Write-Host "Enter the path to the input file (file to be decrypted)`n(E.g. C:/Your/Path/File.txt)" -ForegroundColor Yellow
+    $inputPath = Read-Host
+    Write-Host "`nEnter the path to the output file (where the decrypted file will be saved and if the file doesn't exist, it will be created)`n(E.g. C:/Your/Path/File.txt)" -ForegroundColor Yellow
+    $outputPath = Read-Host
+
+    $password = Read-Host -Prompt "`n`nEnter the password" -AsSecureString
+
+    # Convert the secure string to an unsecure string for decryption purposes
+    $unsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto(
+        [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($password)
+    )
+
+    $inputExists = Test-Path $inputPath
+    $passwordExists = $unsecurePassword.Length -ge 3
+
+    if (-not $inputExists -or -not $passwordExists) {
+        if (-not $inputExists) {
+            Write-Host "`nInput file does not exist.`n" -ForegroundColor Red
+        }
+        if (-not $passwordExists) {
+            Write-Host "`nPassword must be at least 3 characters long.`n" -ForegroundColor Red
+        }
+
+        Write-Host "Press any key to return to the menu..." -ForegroundColor Yellow
+        Read-Host
+
+        $inputExists = ""
+        $passwordExists = ""
+
+        menu
+        return
+    }
+
+    # Read the input file
+    $inputData = [System.IO.File]::ReadAllBytes($inputPath)
+
+    # Extract the IV from the input data
+    $iv = $inputData[0..15]
+    $encryptedData = $inputData[16..($inputData.Length - 1)]
+
+    # Hash the password using SHA256 to create a 256-bit key
+    $sha256 = [System.Security.Cryptography.SHA256]::Create()
+    $passwordBytes = [System.Text.Encoding]::UTF8.GetBytes($unsecurePassword)
+    $hashedPassword = $sha256.ComputeHash($passwordBytes)
+
+    # Create AES decryption object
+    $aes = [System.Security.Cryptography.Aes]::Create()
+    $aes.Key = $hashedPassword
+    $aes.IV = $iv
+    $aes.Mode = [System.Security.Cryptography.CipherMode]::CBC
+    $aes.Padding = [System.Security.Cryptography.PaddingMode]::PKCS7
+
+    # Decrypt the input data
+    $decryptor = $aes.CreateDecryptor()
+    $decryptedData = $decryptor.TransformFinalBlock($encryptedData, 0, $encryptedData.Length)
+
+    # Write the decrypted data to the output file
+    [System.IO.File]::WriteAllBytes($outputPath, $decryptedData)
+
+    Write-Host "`nDecryption complete."
+    Read-Host
 }
+
 function logo {
     # This function prints the logo and welcome message to the console.
     [double] $time = 0.15
@@ -243,8 +307,8 @@ function printSourceCode {
     Write-Host "`n"
     Write-Host "https://github.com/AnonNanoo/CryptKeeper/src/Encrypt.ps1"
     Write-Host "`n"
-    Write-Host "Press any key to return to the menu..." -ForegroundColor Yellow
-    read-host
+    read-host "Press any key to return to the menu..." -ForegroundColor Yellow
+    
     menu
 }
 

@@ -1,4 +1,3 @@
-
 # Variables
 [int] $menuinput # User input for menu selection
 [string] $syncoptions # Sync options
@@ -6,14 +5,14 @@
 # Project related variables
 [string] $ProjectName = "CryptKeeper"
 [string] $ProjectVersion = "0.0.0.1"
-[string] $Tempfolder = [Environment]::GetFolderPath( 'LocalApplicationData' ) + "\CryptKeeper"
+[string] $Tempfolder = [Environment]::GetFolderPath('LocalApplicationData') + "\CryptKeeper"
 
 # Source and destination paths for file synchronization
 [string] $inputPath = ""
 [string] $outputPath = ""
 
 # Password for encryption
-[string]$password = ""
+[string] $password = ""
 
 # File paths for settings and logs
 [string] $settingsFilePath = "$Tempfolder\Settings.dll"
@@ -34,16 +33,12 @@ function encrypt {
     $password = Read-Host -Prompt "`n`nEnter the password" -AsSecureString
 
     # Convert the secure string to an unsecure string for encryption purposes
-    $unsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto
-    (
+    $unsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto(
         [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($password)
     )
 
-   
-    
-
     $inputExists = Test-Path $inputPath
-    $passwordExists = $password.Length -ge 3
+    $passwordExists = $unsecurePassword.Length -ge 3
 
     if (-not $inputExists -or -not $passwordExists) {
         if (-not $inputExists) {
@@ -75,18 +70,13 @@ function encrypt {
     # Read the input file
     $inputData = [System.IO.File]::ReadAllBytes($inputPath)
 
-    # Display paths and password (remove in production for security reasons)
-    Write-Host $inputPath -ForegroundColor Green
-    Write-Host $outputPath -ForegroundColor Green
-    Write-Host $password -ForegroundColor Green
-
     # Generate an IV (Initialization Vector) for AES encryption
     $iv = New-Object Byte[] 16
     [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($iv)
 
     # Hash the password using SHA256 to create a 256-bit key
     $sha256 = [System.Security.Cryptography.SHA256]::Create()
-    $passwordBytes = [System.Text.Encoding]::UTF8.GetBytes($password)
+    $passwordBytes = [System.Text.Encoding]::UTF8.GetBytes($unsecurePassword)
     $hashedPassword = $sha256.ComputeHash($passwordBytes)
 
     # Create AES encryption object
@@ -166,14 +156,19 @@ function decrypt {
     $aes.Mode = [System.Security.Cryptography.CipherMode]::CBC
     $aes.Padding = [System.Security.Cryptography.PaddingMode]::PKCS7
 
-    # Decrypt the input data
-    $decryptor = $aes.CreateDecryptor()
-    $decryptedData = $decryptor.TransformFinalBlock($encryptedData, 0, $encryptedData.Length)
+    try {
+        # Decrypt the input data
+        $decryptor = $aes.CreateDecryptor()
+        $decryptedData = $decryptor.TransformFinalBlock($encryptedData, 0, $encryptedData.Length)
 
-    # Write the decrypted data to the output file
-    [System.IO.File]::WriteAllBytes($outputPath, $decryptedData)
+        # Write the decrypted data to the output file
+        [System.IO.File]::WriteAllBytes($outputPath, $decryptedData)
 
-    Write-Host "`nDecryption complete."
+        Write-Host "`nDecryption complete."
+    } catch {
+        Write-Host "An error occurred during decryption: $_"
+    }
+
     Read-Host
 }
 
@@ -215,8 +210,7 @@ function logo {
     Read-Host
 }
 
-
-function menu{
+function menu {
     do {
         clear-host
         Write-Host "`n==========================================="
@@ -235,21 +229,20 @@ function menu{
             1 {
                 log -logtype 1 -logMessage "Log: Initialized encryption dialogue"
                 encrypt
-                
             }
-            2{
+            2 {
                 log -logtype 1 -logMessage "Log: Initialized decryption dialogue"
                 decrypt
             }
-            3{
+            3 {
                 log -logtype 1 -logMessage "Log: Printed log"
                 printlog
             }
-            4{
+            4 {
                 log -logtype 1 -logMessage "Log: Printed source code"
                 printSourceCode
             }
-            95{
+            95 {
                 log -logtype 1 -logMessage "Log: Initialized deletion dialogue"
                 Write-Host "Are you sure you want to delete all the files in the Temp folder? (Y/N)" -ForegroundColor Red
                 $syncoptions = Read-Host
@@ -275,8 +268,7 @@ function menu{
                     Start-Sleep -Seconds 1
                     Write-Host "`nGoodbye!" -ForegroundColor Green
                     exit
-                }
-                else {
+                } else {
                     log -logtype 1 -logMessage "Log: Deletion cancelled"
                     Write-Host "`nDeletion cancelled." -ForegroundColor Green
                     Start-Sleep -Seconds 1
@@ -296,8 +288,7 @@ function menu{
             }
         }
         $menuinput = 0
-    }until (0 -eq 1)
-
+    } until (0 -eq 1)
 }
 
 function printSourceCode {
@@ -309,9 +300,8 @@ function printSourceCode {
     Write-Host "`n"
     read-host "Press any key to return to the menu..." -ForegroundColor Yellow
     
-    menux
+    menu
 }
-
 
 function log {
     # This function logs messages to the log file or error log file based on the given log type.
@@ -320,18 +310,16 @@ function log {
         [string]$logMessage
     )
     try {
-        if ( (test-path -path $logFilePath ) -and $logtype -eq 1 ) {    # 1 is for normal log
-            [string] $timestamp = Get-Date -Format  "dd-MM-yyyy HH:mm.sss" 
+        if ((test-path -path $logFilePath) -and $logtype -eq 1) {    # 1 is for normal log
+            [string] $timestamp = Get-Date -Format "dd-MM-yyyy HH:mm.sss"
             $logMessage = $logMessage + " at $timestamp"
             $logMessage | Out-File -FilePath $logFilePath -Append -Encoding utf8
-        }
-        elseif ((test-path -path $ErrorLogFilepath ) -and $logtype -eq 2) {   # 2 is for error log
-            [string] $timestamp = Get-Date -Format  "dd-MM-yyyy HH:mm.sss"
+        } elseif ((test-path -path $ErrorLogFilepath) -and $logtype -eq 2) {   # 2 is for error log
+            [string] $timestamp = Get-Date -Format "dd-MM-yyyy HH:mm.sss"
             $logMessage = $logMessage + " at $timestamp"
             $logMessage | Out-File -FilePath $ErrorLogFilePath -Append -Encoding utf8
         }
-    }
-    catch {
+    } catch {
         return
     }
 }
@@ -375,7 +363,7 @@ function setup {
     read-host
 }
 
-function Main{
+function Main {
     log -logtype 1 -logMessage "Start: CryptKeeper started"
     logo
     setup
@@ -383,5 +371,3 @@ function Main{
 }
 
 Main
-
-

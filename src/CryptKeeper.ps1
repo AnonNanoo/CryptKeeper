@@ -55,8 +55,10 @@ function encrypt {
             New-Item -ItemType Directory -Path $outputDir -Force -ErrorAction Stop
             log -logtype 1 -logMessage "Log: Created output directory: $outputDir"
         } catch {
-            Write-Error "Failed to create output directory: $outputDir. Error: $_" -ForegroundColor Red
+            Write-Host "Failed to create output directory: $outputDir. Error: $_" -ForegroundColor Red
             log -logtype 2 -logMessage "Error: Failed to create output directory: $outputDir. Error: $_"
+            Write-Host "Press any key to return to the menu..." -ForegroundColor Yellow
+            Read-Host
             return
         }
     }
@@ -122,6 +124,7 @@ function encrypt {
     # Write-Host "$unsecurePassword" -ForegroundColor Green
 
     Write-Host "`nEncryption complete."
+    Write-Host "Press any key to return to the menu..." -ForegroundColor Yellow
     Read-Host
 }
 
@@ -131,8 +134,41 @@ function decrypt {
     # Prompt user for inputs
     Write-Host "Enter the path to the input file (file to be decrypted)`n(E.g. C:/Your/Path/File.txt)" -ForegroundColor Yellow
     $inputPath = Read-Host
+
+    # Check if the input file exists
+    $inputExists = Test-Path $inputPath
+    if (-not $inputExists) {
+        
+        Write-Host "`nInput file does not exist.`n" -ForegroundColor Red
+        log -logtype 2 -logMessage "Error: Input file missing or invalid"
+
+        Write-Host "Press any key to return to the menu..." -ForegroundColor Yellow
+        Read-Host
+
+        $inputExists = $false
+
+        menu
+        return
+    }
+
     Write-Host "`nEnter the path to the output file (where the decrypted file will be saved and if the file doesn't exist, it will be created)`n(E.g. C:/Your/Path/File.txt)" -ForegroundColor Yellow
     $outputPath = Read-Host
+
+    # Check if the output directory exists
+    $outputDir = Split-Path $outputPath -Parent
+    if (-not (Test-Path $outputDir)) {
+        try {
+            New-Item -ItemType Directory -Path $outputDir -Force -ErrorAction Stop
+            log -logtype 1 -logMessage "Log: Created output directory: $outputDir"
+        } catch {
+            Write-Host "`nFailed to create output directory: $outputDir. Error: $_" -ForegroundColor Red
+            log -logtype 2 -logMessage "Error: Failed to create output directory: $outputDir. Error: $_"
+            Write-Host "`nPress any key to return to the menu..." -ForegroundColor Yellow
+            Read-Host
+            return
+        }
+        
+    }
 
     $password = Read-Host -Prompt "`n`nEnter the password" -AsSecureString
 
@@ -141,28 +177,21 @@ function decrypt {
         [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($password)
     )
 
-    $inputExists = Test-Path $inputPath
+    # Check if the password is at least 3 characters long
     $passwordExists = $unsecurePassword.Length -ge 3
+    if (-not $passwordExists) {
+        Write-Host "`nPassword must be at least 3 characters long.`n" -ForegroundColor Red
+        log -logtype 2 -logMessage "Error: Password missing or invalid"
 
-    if (-not $inputExists -or -not $passwordExists) {
-        if (-not $inputExists) {
-            Write-Host "`nInput file does not exist.`n" -ForegroundColor Red
-            log -logtype 2 -logMessage "Error: Input file missing or invalid"
-        }
-        if (-not $passwordExists) {
-            Write-Host "`nPassword must be at least 3 characters long.`n" -ForegroundColor Red
-            log -logtype 2 -logMessage "Error: Password missing or invalid"
-        }
-
-        Write-Host "Press any key to return to the menu..." -ForegroundColor Yellow
+        Write-Host "`nPress any key to return to the menu..." -ForegroundColor Yellow
         Read-Host
-
-        $inputExists = ""
-        $passwordExists = ""
+        $passwordExists = $false
 
         menu
         return
     }
+
+
 
     # Read the input file
     $inputData = [System.IO.File]::ReadAllBytes($inputPath)
@@ -191,9 +220,13 @@ function decrypt {
         # Write the decrypted data to the output file
         [System.IO.File]::WriteAllBytes($outputPath, $decryptedData)
 
-        Write-Host "`nDecryption complete."
+        Write-Host "`nDecryption complete." -ForegroundColor Green
+        Write-Host "Press any key to return to the menu..." -ForegroundColor Yellow
+        Read-Host
     } catch {
-        Write-Host "An error occurred during decryption: $_"
+        Write-Host "`nAn error occurred during decryption: Incorrect password or corrupted file." -ForegroundColor Red
+        log -logtype 2 -logMessage "Error: Incorrect password or corrupted file"
+        Write-Host "`nPress any key to return to the menu..." -ForegroundColor Yellow
     }
 
     Read-Host

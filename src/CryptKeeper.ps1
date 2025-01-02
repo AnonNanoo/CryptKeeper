@@ -88,7 +88,7 @@ function encrypt {
     
 
     # Proceeding with encryption logic if the input file exists and the password is valid
-    Write-Host "`nProceeding with encryption...`n" -ForegroundColor Green
+    Write-Host "`nProceeding with encryption..." -ForegroundColor Yellow
 
     # Read the input file
     $inputData = [System.IO.File]::ReadAllBytes($inputPath)
@@ -123,8 +123,8 @@ function encrypt {
     # Write-Host "$password" -ForegroundColor Green
     # Write-Host "$unsecurePassword" -ForegroundColor Green
 
-    Write-Host "`nEncryption complete."
-    Write-Host "Press any key to return to the menu..." -ForegroundColor Yellow
+    Write-Host "`nEncryption complete." -ForegroundColor Green
+    Write-Host "`nPress any key to return to the menu..." -ForegroundColor Yellow
     Read-Host
 }
 
@@ -220,8 +220,10 @@ function decrypt {
         # Write the decrypted data to the output file
         [System.IO.File]::WriteAllBytes($outputPath, $decryptedData)
 
+        Write-Host "`nProceeding with decryption..." -ForegroundColor Yellow
+
         Write-Host "`nDecryption complete." -ForegroundColor Green
-        Write-Host "Press any key to return to the menu..." -ForegroundColor Yellow
+        Write-Host "`nPress any key to return to the menu..." -ForegroundColor Yellow
         Read-Host
     } catch {
         Write-Host "`nAn error occurred during decryption: Incorrect password or corrupted file." -ForegroundColor Red
@@ -361,13 +363,10 @@ function menu {
 function printSourceCode {
     clear-host
     Write-Host "Source code for CryptKeeper" -ForegroundColor Yellow
-    Write-Host "=============================" -ForegroundColor Yellow
-    Write-Host "`n"
+    Write-Host "=============================`n" -ForegroundColor Yellow
     Write-Host "https://github.com/AnonNanoo/CryptKeeper/blob/main/src/CryptKeeper.ps1"
-    Write-Host "`n"
-    Write-Host "Press any key to return to the menu..." -ForegroundColor Yellow
+    Write-Host "`nPress any key to return to the menu..." -ForegroundColor Yellow
     read-host
-    
     menu
 }
 

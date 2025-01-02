@@ -27,50 +27,71 @@ function encrypt {
     # Prompt user for inputs
     Write-Host "Enter the path to the input file (file to be encrypted)`n(E.g. C:/Your/Path/File.txt)" -ForegroundColor Yellow
     $inputPath = Read-Host
-    Write-Host "`nEnter the path to the output file (where the encrypted file will be saved)`n(E.g. C:/Your/Path/File.txt)" -ForegroundColor Yellow
-    $outputPath = Read-Host
 
-    $password = Read-Host -Prompt "`n`nEnter the password" -AsSecureString
-
-    # Convert the secure string to an unsecure string for encryption purposes
-    $unsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto(
-        [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($password)
-    )
-
+    # Check if the input file exists
     $inputExists = Test-Path $inputPath
-    $passwordExists = $unsecurePassword.Length -ge 3
-
-    if (-not $inputExists -or -not $passwordExists) {
-        if (-not $inputExists) {
-            Write-Host "`nInput file does not exist.`n" -ForegroundColor Red
-        }
-        if (-not $passwordExists) {
-            Write-Host "`nPassword must be at least 3 characters long.`n" -ForegroundColor Red
-        }
+    if (-not $inputExists) {
+        
+        Write-Host "`nInput file does not exist.`n" -ForegroundColor Red
+        log -logtype 2 -logMessage "Error: Input file missing or invalid"
 
         Write-Host "Press any key to return to the menu..." -ForegroundColor Yellow
         Read-Host
 
-        $inputExists = ""
-        $passwordExists = ""
+        $inputExists = $false
 
         menu
         return
     }
 
+
+    Write-Host "`nEnter the path to the output file (where the encrypted file will be saved)`n(E.g. C:/Your/Path/File.txt)" -ForegroundColor Yellow
+    $outputPath = Read-Host
+
     # Ensure the output directory exists
     $outputDir = Split-Path $outputPath -Parent
     if (-not (Test-Path $outputDir)) {
-        New-Item -ItemType Directory -Path $outputDir -Force
+        try {
+            New-Item -ItemType Directory -Path $outputDir -Force -ErrorAction Stop
+            log -logtype 1 -logMessage "Log: Created output directory: $outputDir"
+        } catch {
+            Write-Error "Failed to create output directory: $outputDir. Error: $_" -ForegroundColor Red
+            log -logtype 2 -logMessage "Error: Failed to create output directory: $outputDir. Error: $_"
+            return
+        }
+    }
+    
+    $password = Read-Host -Prompt "`n`nEnter the password" -AsSecureString
+
+    # Convert the secure string to an unsecure string for encryption purposes, basically renders the "secure" string useless, its just a cool idea :)
+    $unsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($password))
+
+    # Check if the password is at least 3 characters long
+
+    $passwordExists = $unsecurePassword.Length -ge 3
+    if (-not $passwordExists) {
+        
+
+        Write-Host "`nPassword must be at least 3 characters long.`n" -ForegroundColor Red
+        log -logtype 2 -logMessage "Error: Password missing or invalid"
+
+        Write-Host "Press any key to return to the menu..." -ForegroundColor Yellow
+        Read-Host
+        $passwordExists = $false
+
+        menu
+        return
     }
 
-    # Proceed with encryption logic here
+    
+
+    # Proceeding with encryption logic if the input file exists and the password is valid
     Write-Host "`nProceeding with encryption...`n" -ForegroundColor Green
 
     # Read the input file
     $inputData = [System.IO.File]::ReadAllBytes($inputPath)
 
-    # Generate an IV (Initialization Vector) for AES encryption
+    # Generate an Initialization Vector for AES encryption
     $iv = New-Object Byte[] 16
     [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($iv)
 
@@ -95,6 +116,10 @@ function encrypt {
 
     # Write the encrypted data to the output file
     [System.IO.File]::WriteAllBytes($outputPath, $finalData)
+
+    # If you want to test the password and unsecure password undo the hashtags below
+    # Write-Host "$password" -ForegroundColor Green
+    # Write-Host "$unsecurePassword" -ForegroundColor Green
 
     Write-Host "`nEncryption complete."
     Read-Host
@@ -122,9 +147,11 @@ function decrypt {
     if (-not $inputExists -or -not $passwordExists) {
         if (-not $inputExists) {
             Write-Host "`nInput file does not exist.`n" -ForegroundColor Red
+            log -logtype 2 -logMessage "Error: Input file missing or invalid"
         }
         if (-not $passwordExists) {
             Write-Host "`nPassword must be at least 3 characters long.`n" -ForegroundColor Red
+            log -logtype 2 -logMessage "Error: Password missing or invalid"
         }
 
         Write-Host "Press any key to return to the menu..." -ForegroundColor Yellow
@@ -174,6 +201,7 @@ function decrypt {
 
 function logo {
     # This function prints the logo and welcome message to the console.
+
     [double] $time = 0.15
     clear-host
     Write-Host "   ______                 __  __ __                         " 
@@ -207,10 +235,10 @@ function logo {
         Write-Host "." -NoNewline
     }until ($i -eq 3)
     Write-Host "`n"
-    Read-Host
 }
 
 function menu {
+    clear-host
     do {
         clear-host
         Write-Host "`n==========================================="
@@ -219,7 +247,8 @@ function menu {
         Write-Host "| (1) Encrypt now                         |"
         Write-Host "| (2) Decrypt now                         |"
         Write-Host "| (3) Open Log                            |"
-        Write-Host "| (4) Sourcecode                          |"
+        Write-Host "| (4) Open Error log                      |"
+        Write-Host "| (5) Sourcecode                          |"
         Write-Host "|                                         |"
         Write-Host "| (95) Deletion                           |"
         Write-Host "| (99) Exit                               |"
@@ -239,6 +268,11 @@ function menu {
                 printlog
             }
             4 {
+                log -logtype 1 -logMessage "Log: Printed error log"
+                printerrorlog
+
+            }
+            5{
                 log -logtype 1 -logMessage "Log: Printed source code"
                 printSourceCode
             }
@@ -281,7 +315,7 @@ function menu {
                 exit
             }
             default {
-                log -logtype 1 -logMessage "Error: Invalid input in Menu"
+                log -logtype 2 -logMessage "Error: Invalid input in Menu"
                 Write-host "Invalid input. Try again"
                 Write-host "To exit, enter 99" -ForegroundColor Red
                 Start-Sleep -Milliseconds 1500
@@ -296,9 +330,10 @@ function printSourceCode {
     Write-Host "Source code for CryptKeeper" -ForegroundColor Yellow
     Write-Host "=============================" -ForegroundColor Yellow
     Write-Host "`n"
-    Write-Host "https://github.com/AnonNanoo/CryptKeeper/src/Encrypt.ps1"
+    Write-Host "https://github.com/AnonNanoo/CryptKeeper/blob/main/src/CryptKeeper.ps1"
     Write-Host "`n"
-    read-host "Press any key to return to the menu..." -ForegroundColor Yellow
+    Write-Host "Press any key to return to the menu..." -ForegroundColor Yellow
+    read-host
     
     menu
 }
@@ -326,6 +361,7 @@ function log {
 
 function printlog {
     # This function prints the log file into the console.
+
     Clear-Host
     $logContent = Get-Content -Path $logFilePath
     foreach ($line in $logContent) {
@@ -346,8 +382,25 @@ function printlog {
     Read-Host "`nPress Enter to return to menu..."
 }
 
+function printerrorlog{
+    # This function prints the error log file into the console.
+
+    Clear-Host
+    $logContent = Get-Content -Path $ErrorLogFilePath
+    foreach ($line in $logContent) {
+        if ($line -match "Error:") {
+            $originalColor = $Host.UI.RawUI.ForegroundColor
+            $Host.UI.RawUI.ForegroundColor = "Red"
+            $line | Out-Host
+            $Host.UI.RawUI.ForegroundColor = $originalColor
+        }
+    }
+    Read-Host "`nPress Enter to return to menu..."
+}
+
 function setup {
     # This function sets up the environment for the CryptKeeper.
+
     if (-not (Test-Path $Tempfolder)) {
         New-Item -Path $Tempfolder -ItemType Directory -Force
     }
@@ -360,7 +413,7 @@ function setup {
     if (-not (Test-Path $ErrorLogFilePath)) {
         New-Item -Path $ErrorLogFilePath -ItemType File -Force
     }
-    read-host
+
 }
 
 function Main {

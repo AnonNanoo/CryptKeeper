@@ -364,6 +364,7 @@ function printSourceCode {
     Write-Host "Source code for CryptKeeper" -ForegroundColor Yellow
     Write-Host "=============================" -ForegroundColor Yellow
     Write-Host "CryptKeeper is a simple yet powerful PowerShell script for encrypting and decrypting files.`nKeep your sensitive data safe with strong encryption algorithms, all wrapped in an easy-to-use command-line interface.`nPerfect for anyone who needs a lightweight and effective security solution!`n"
+    Write-Host "`nSource code for Cryptkeeper can be found at the following link:" -ForegroundColor Yellow
     Write-Host "https://github.com/AnonNanoo/CryptKeeper/blob/main/src/CryptKeeper.ps1"
     Write-Host "`nPress any key to return to the menu..." -ForegroundColor Yellow
     read-host

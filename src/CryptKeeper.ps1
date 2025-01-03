@@ -15,7 +15,6 @@
 [string] $password = ""
 
 # File paths for settings and logs
-[string] $settingsFilePath = "$Tempfolder\Settings.dll"
 [string] $ErrorLogFilePath = "$Tempfolder\ErrorLog.log"
 [string] $logFilePath = "$Tempfolder\CryptKeeper.log"
 [string] $logMessage
@@ -363,7 +362,8 @@ function menu {
 function printSourceCode {
     clear-host
     Write-Host "Source code for CryptKeeper" -ForegroundColor Yellow
-    Write-Host "=============================`n" -ForegroundColor Yellow
+    Write-Host "=============================" -ForegroundColor Yellow
+    Write-Host "CryptKeeper is a simple yet powerful PowerShell script for encrypting and decrypting files.`nKeep your sensitive data safe with strong encryption algorithms, all wrapped in an easy-to-use command-line interface.`nPerfect for anyone who needs a lightweight and effective security solution!`n"
     Write-Host "https://github.com/AnonNanoo/CryptKeeper/blob/main/src/CryptKeeper.ps1"
     Write-Host "`nPress any key to return to the menu..." -ForegroundColor Yellow
     read-host
@@ -411,7 +411,8 @@ function printlog {
             $line | Out-Host
         }
     }
-    Read-Host "`nPress Enter to return to menu..."
+    Write-Host "`nPress Enter to return to menu..."
+    Read-Host
 }
 
 function printerrorlog{
@@ -435,9 +436,6 @@ function setup {
 
     if (-not (Test-Path $Tempfolder)) {
         New-Item -Path $Tempfolder -ItemType Directory -Force
-    }
-    if (-not (Test-Path $settingsFilePath)) {
-        New-Item -Path $settingsFilePath -ItemType File -Force
     }
     if (-not (Test-Path $logFilePath)) {
         New-Item -Path $logFilePath -ItemType File -Force
